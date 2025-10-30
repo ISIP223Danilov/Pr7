@@ -1,339 +1,259 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
-
-// ПЕРЕЧИСЛЕНИЯ
-
-public enum PartType
+namespace AutoServiceManagement
 {
-    Engine,
-    Brakes,
-    Transmission,
-    Battery,
-    Tires,
-    Suspension
-    // ... и другие детали
-}
-
-
-// КЛАССЫ ДАННЫХ (СУЩНОСТИ)
-
-
-public class Part
-{
-    public PartType Type { get; }
-    public string Name { get; }
-    public decimal CostPrice { get; } // Цена закупки
-    public decimal SellPrice { get; } // Цена продажи клиенту
-
-    public Part(PartType type, string name, decimal costPrice, decimal sellPrice)
+    // Перечисление для статусов заказа
+    public enum OrderStatus
     {
-        //  Валидация (название не пустое, цены > 0)
-        Type = type;
-        Name = name;
-        CostPrice = costPrice;
-        SellPrice = sellPrice;
+        Pending,      // Ожидает решения
+        InProgress,   // В работе
+        Completed,    // Завершен успешно
+        Refused,      // Отказано
+        Failed        // Неудачно завершен
     }
 
-    //  Реализовать метод расчета стоимости ремонта (цена детали + работа)
-    public decimal CalculateRepairCost()
+    // Класс детали
+    public class Part
     {
-        throw new NotImplementedException();
-    }
-}
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+        public int Quantity { get; set; }
+        public string Description { get; set; }
 
-public class WarehouseItem
-{
-    public Part Part { get; }
-    public int Quantity { get; private set; }
+        public Part() { }
 
-    public WarehouseItem(Part part, int quantity)
-    {
-        // Валидация (part != null, quantity >= 0)
-        Part = part;
-        Quantity = quantity;
-    }
-
-    // Увеличить количество
-    public void IncreaseQuantity(int amount)
-    {
-        throw new NotImplementedException();
+        public Part(string name, decimal price, int quantity, string description = "")
+        {
+            Name = name;
+            Price = price;
+            Quantity = quantity;
+            Description = description;
+        }
     }
 
-    // Уменьшить количество
-    public void DecreaseQuantity(int amount)
+    // Класс автомобиля
+    public class Car
     {
-        throw new NotImplementedException();
-    }
-}
+        public int Id { get; set; }
+        public string Brand { get; set; }
+        public string Model { get; set; }
+        public int Year { get; set; }
+        public string LicensePlate { get; set; }
 
-public class PurchaseOrder
-{
-    public Part Part { get; }
-    public int Quantity { get; }
-    public int CarsUntilDelivery { get; private set; }
-    public bool IsDelivered => CarsUntilDelivery <= 0;
+        public Car() { }
 
-    public PurchaseOrder(Part part, int quantity, int initialDelay = 2)
-    {
-        //Валидация
-        Part = part;
-        Quantity = quantity;
-        CarsUntilDelivery = initialDelay;
-    }
+        public Car(string brand, string model, int year, string licensePlate)
+        {
+            Brand = brand;
+            Model = model;
+            Year = year;
+            LicensePlate = licensePlate;
+        }
 
-    // Уменьшить счетчик доставки
-    public void DecrementDeliveryCounter()
-    {
-        throw new NotImplementedException();
-    }
-}
-
-public class Breakdown
-{
-    public Part BrokenPart { get; }
-    public decimal RepairCost => BrokenPart.CalculateRepairCost();
-
-    public Breakdown(Part brokenPart)
-    {
-        // Валидация
-        BrokenPart = brokenPart;
-    }
-}
-
-public class Car
-{
-    public string Model { get; }
-    public Breakdown CurrentBreakdown { get; }
-
-    public Car(string model, Breakdown breakdown)
-    {
-        // Валидация
-        Model = model;
-        CurrentBreakdown = breakdown;
-    }
-}
-
-public class Client
-{
-    public Car Car { get; }
-
-    public Client(Car car)
-    {
-        // Валидация
-        Car = car;
-    }
-}
-
-
-// СЕРВИСНЫЕ КЛАССЫ (ЛОГИКА)
-
-
-public class Warehouse
-{
-    private List<WarehouseItem> _items;
-    private List<PurchaseOrder> _pendingOrders;
-
-    public IReadOnlyList<WarehouseItem> Items => _items.AsReadOnly();
-    public IReadOnlyList<PurchaseOrder> PendingOrders => _pendingOrders.AsReadOnly();
-
-    public Warehouse()
-    {
-        _items = new List<WarehouseItem>();
-        _pendingOrders = new List<PurchaseOrder>();
+        public override string ToString()
+        {
+            return $"{Brand} {Model} ({Year}) - {LicensePlate}";
+        }
     }
 
-    // Добавить деталь на склад
-    public void AddPart(Part part, int quantity)
+    // Класс клиента
+    public class Client
     {
-        throw new NotImplementedException();
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Phone { get; set; }
+        public Car Car { get; set; }
+
+        public Client() { }
+
+        public Client(string name, string phone, Car car)
+        {
+            Name = name;
+            Phone = phone;
+            Car = car;
+        }
+
+        public override string ToString()
+        {
+            return $"{Name} ({Phone}) - {Car}";
+        }
     }
 
-    // Проверить наличие детали
-    public bool HasPart(PartType partType)
+    // Класс заказа на ремонт
+    public class RepairOrder
     {
-        throw new NotImplementedException();
+        public int Id { get; set; }
+        public Client Client { get; set; }
+        public Part BrokenPart { get; set; }
+        public Part UsedPart { get; set; }
+        public decimal RepairCost { get; set; }
+        public decimal LaborCost { get; set; }
+        public OrderStatus Status { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public DateTime? CompletedDate { get; set; }
+
+        public RepairOrder() { }
+
+        public RepairOrder(Client client, Part brokenPart, decimal laborCost)
+        {
+            Client = client;
+            BrokenPart = brokenPart;
+            LaborCost = laborCost;
+            RepairCost = CalculateTotalCost();
+            Status = OrderStatus.Pending;
+            CreatedDate = DateTime.Now;
+        }
+
+        public decimal CalculateTotalCost()
+        {
+            return BrokenPart.Price + LaborCost;
+        }
+
+        public void CompleteOrder(Part usedPart)
+        {
+            UsedPart = usedPart;
+            Status = OrderStatus.Completed;
+            CompletedDate = DateTime.Now;
+        }
+
+        public void RefuseOrder()
+        {
+            Status = OrderStatus.Refused;
+            CompletedDate = DateTime.Now;
+        }
+
+        public void FailOrder()
+        {
+            Status = OrderStatus.Failed;
+            CompletedDate = DateTime.Now;
+        }
+
+        public override string ToString()
+        {
+            return $"Заказ #{Id}: {Client.Name} - {BrokenPart.Name} - {Status}";
+        }
     }
 
-    // Получить деталь со склада (для ремонта)
-    public Part TakePart(PartType partType)
+    // Класс склада
+    public class Warehouse
     {
-        throw new NotImplementedException();
+        public List<Part> Parts { get; set; }
+
+        public Warehouse()
+        {
+            Parts = new List<Part>();
+        }
+
+        public void AddPart(Part part)
+        {
+            var existingPart = Parts.FirstOrDefault(p => p.Name == part.Name);
+            if (existingPart != null)
+            {
+                existingPart.Quantity += part.Quantity;
+            }
+            else
+            {
+                Parts.Add(part);
+            }
+        }
+
+        public void RemovePart(Part part, int quantity)
+        {
+            var existingPart = Parts.FirstOrDefault(p => p.Name == part.Name);
+            if (existingPart != null && existingPart.Quantity >= quantity)
+            {
+                existingPart.Quantity -= quantity;
+            }
+        }
+
+        public Part GetPartByName(string partName)
+        {
+            return Parts.FirstOrDefault(p => p.Name.ToLower() == partName.ToLower());
+        }
+
+        public bool HasPart(string partName, int quantity = 1)
+        {
+            var part = GetPartByName(partName);
+            return part != null && part.Quantity >= quantity;
+        }
+
+        public void DisplayInventory()
+        {
+            Console.WriteLine("\n=== СКЛАД ===");
+            foreach (var part in Parts.Where(p => p.Quantity > 0))
+            {
+                Console.WriteLine($"{part.Name}: {part.Quantity} шт. - {part.Price} руб.");
+            }
+        }
     }
 
-    //Создать заказ на покупку
-    public void CreatePurchaseOrder(Part part, int quantity)
+    // Класс автосервиса
+    public class AutoService
     {
-        throw new NotImplementedException();
-    }
+        public string Name { get; set; }
+        public decimal Balance { get; set; }
+        public Warehouse Warehouse { get; set; }
+        public List<RepairOrder> Orders { get; set; }
+        public List<RepairOrder> OrderHistory { get; set; }
+        public decimal LaborCostMultiplier { get; set; }
+        public decimal RefusalPenalty { get; set; }
+        public decimal FailurePenaltyMultiplier { get; set; }
 
-    // Обновить состояние заказов (уменьшить счетчики, доставить готовые)
-    public void UpdatePendingOrders()
-    {
-        throw new NotImplementedException();
-    }
-}
+        public AutoService(string name, decimal initialBalance)
+        {
+            Name = name;
+            Balance = initialBalance;
+            Warehouse = new Warehouse();
+            Orders = new List<RepairOrder>();
+            OrderHistory = new List<RepairOrder>();
+            LaborCostMultiplier = 1.5m;
+            RefusalPenalty = 100;
+            FailurePenaltyMultiplier = 2.0m;
+        }
 
-public class Finance
-{
-    public decimal Balance { get; private set; }
+        public void AcceptOrder(RepairOrder order)
+        {
+            Orders.Add(order);
+            Console.WriteLine($"Принят заказ: {order}");
+        }
 
-    public Finance(decimal initialBalance)
-    {
-        // Валидация (initialBalance >= 0)
-        Balance = initialBalance;
-    }
+        public void ProcessOrder(RepairOrder order)
+        {
+            // Будет реализовано в следующем коммите
+        }
 
-    // Пополнить баланс
-    public void Credit(decimal amount)
-    {
-        throw new NotImplementedException();
-    }
+        public void BuyParts(Part part, int quantity)
+        {
+            // Будет реализовано в следующем коммите
+        }
 
-    // Списать с баланса
-    public void Debit(decimal amount)
-    {
-        throw new NotImplementedException();
-    }
+        public void UpdateBalance(decimal amount)
+        {
+            Balance += amount;
+            Console.WriteLine($"Баланс обновлен: {Balance} руб.");
+        }
 
-    // Проверить, достаточно ли средств
-    public bool CanAfford(decimal amount)
-    {
-        throw new NotImplementedException();
-    }
-}
+        public void DisplayStatus()
+        {
+            Console.WriteLine($"\n=== {Name} ===");
+            Console.WriteLine($"Баланс: {Balance} руб.");
+            Console.WriteLine($"Активных заказов: {Orders.Count}");
+            Console.WriteLine($"Завершенных заказов: {OrderHistory.Count}");
+        }
 
-public class ClientManager
-{
-    // Сгенерировать случайного клиента со случайной поломкой
-    public Client GenerateRandomClient()
-    {
-        throw new NotImplementedException();
-    }
-}
+        public void DisplayStatistics()
+        {
+            var completed = OrderHistory.Count(o => o.Status == OrderStatus.Completed);
+            var refused = OrderHistory.Count(o => o.Status == OrderStatus.Refused);
+            var failed = OrderHistory.Count(o => o.Status == OrderStatus.Failed);
 
-public static class Validator
-{
-    // Проверить, что строка не пустая и не null
-    public static void ValidateString(string value, string paramName)
-    {
-        throw new NotImplementedException();
-    }
-
-    // Проверить, что число положительное
-    public static void ValidatePositiveNumber(decimal value, string paramName)
-    {
-        throw new NotImplementedException();
-    }
-
-    // Проверить, что число не отрицательное
-    public static void ValidateNonNegativeNumber(int value, string paramName)
-    {
-        throw new NotImplementedException();
-    }
-
-    // Проверить, что объект не null
-    public static void ValidateNotNull(object obj, string paramName)
-    {
-        throw new NotImplementedException();
-    }
-}
-
-public static class Logger
-{
-    // Логировать информационное сообщение
-    public static void LogInfo(string message)
-    {
-        throw new NotImplementedException();
-    }
-
-    // Логировать сообщение об ошибке
-    public static void LogError(string message)
-    {
-        throw new NotImplementedException();
-    }
-
-    // Логировать успешное действие
-    public static void LogSuccess(string message)
-    {
-        throw new NotImplementedException();
-    }
-}
-
-
-// ГЛАВНЫЙ КЛАСС ПРИЛОЖЕНИЯ
-
-
-public class AutoService
-{
-    private Warehouse _warehouse;
-    private Finance _finance;
-    private ClientManager _clientManager;
-    private int _carsProcessed;
-
-    public AutoService(decimal initialBalance, List<WarehouseItem> initialParts)
-    {
-        // Инициализация
-        _finance = new Finance(initialBalance);
-        _warehouse = new Warehouse();
-        _clientManager = new ClientManager();
-        _carsProcessed = 0;
-
-        // Добавить начальные детали на склад
-    }
-
-    // Главный игровой цикл
-    public void StartGame()
-    {
-        throw new NotImplementedException();
-    }
-
-    // Обработать следующего клиента
-    private void ProcessNextClient()
-    {
-        throw new NotImplementedException();
-    }
-
-    // Показать меню действий для клиента
-    private void ShowClientMenu(Client client)
-    {
-        throw new NotImplementedException();
-    }
-
-    // Принять заказ
-    private void AcceptOrder(Client client)
-    {
-        throw new NotImplementedException();
-    }
-
-    // Отказать от заказа
-    private void RejectOrder(Client client)
-    {
-        throw new NotImplementedException();
-    }
-
-    // Показать меню закупок
-    private void ShowPurchaseMenu()
-    {
-        throw new NotImplementedException();
-    }
-
-    // Показать статус (баланс, склад)
-    private void ShowStatus()
-    {
-        throw new NotImplementedException();
-    }
-}
-
-
-// ТОЧКА ВХОДА
-
-
-class Program
-{
-    static void Main(string[] args)
-    {
-        // Инициализировать AutoService с начальными значениями и запустить игру
-        Console.WriteLine("Добро пожаловать в автосервис!");
+            Console.WriteLine("\n=== СТАТИСТИКА ===");
+            Console.WriteLine($"Успешных ремонтов: {completed}");
+            Console.WriteLine($"Отказов: {refused}");
+            Console.WriteLine($"Неудач: {failed}");
+        }
     }
 }
